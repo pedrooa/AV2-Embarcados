@@ -84,6 +84,7 @@
  * Support and FAQ: visit <a href="https://www.microchip.com/support/">Microchip Support</a>
  */
 
+
 #include <asf.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -91,6 +92,31 @@
 #include "conf_board.h"
 #include "conf_example.h"
 #include "conf_uart_serial.h"
+#include "tfont.h"
+#include "digital521.h"
+#include "soneca.h"
+#include "termometro.h"
+#include "ar.h"
+
+/** Reference voltage for AFEC,in mv. */
+#define VOLT_REF        (3300)
+
+/** The maximal digital value */
+/** 2^12 - 1                  */
+#define MAX_DIGITAL     (4095)
+
+
+/** The conversion data is done flag */
+volatile bool g_is_conversion_done = false;
+volatile bool g_is_res_done = false;
+
+/** The conversion data value */
+volatile uint32_t g_ul_value = 0;
+volatile uint32_t g_res_value = 0;
+
+/* Canal do sensor de temperatura */
+#define AFEC_CHANNEL_TEMP_SENSOR 11
+#define AFEC_CHANNEL_RES_PIN 0
 
 /************************************************************************/
 /* LCD + TOUCH                                                          */
@@ -278,13 +304,50 @@ static void mxt_init(struct mxt_device *device)
 /* funcoes                                                              */
 /************************************************************************/
 
+
+
+void font_draw_text(tFont *font, const char *text, int x, int y, int spacing) {
+	char *p = text;
+	while(*p != NULL) {
+		char letter = *p;
+		int letter_offset = letter - font->start_char;
+		if(letter <= font->end_char) {
+			tChar *current_char = font->chars + letter_offset;
+			ili9488_draw_pixmap(x, y, current_char->image->width, current_char->image->height, current_char->image->data);
+			x += current_char->image->width + spacing;
+		}
+		p++;
+	}
+}
+void draw_temp(){
+	char b[512];
+	//int Tempo_ciclo = ciclo.enxagueQnt * ciclo.enxagueTempo + ciclo.centrifugacaoTempo; // Minutos
+	sprintf(b, "%d", 15);
+	font_draw_text(&digital52, b, 20+termometro.width/2 + 20, 330, 1);
+}
+void draw_pot(){
+	char b[512];
+	//int Tempo_ciclo = ciclo.enxagueQnt * ciclo.enxagueTempo + ciclo.centrifugacaoTempo; // Minutos
+	sprintf(b, "%d %", 100);
+	font_draw_text(&digital52, b, 140+ar.width/2 + 20, 330, 1);
+}
 void draw_screen(void) {
 	ili9488_set_foreground_color(COLOR_CONVERT(COLOR_WHITE));
 	ili9488_draw_filled_rectangle(0, 0, ILI9488_LCD_WIDTH-1, ILI9488_LCD_HEIGHT-1);
+	ili9488_draw_pixmap(230, 10,soneca.width,soneca.height, soneca.data);
+	ili9488_draw_pixmap(20, 330,termometro.width,termometro.height, termometro.data);
+	ili9488_draw_pixmap(140, 330,ar.width,ar.height, ar.data);
+	draw_temp();
+	draw_pot();
 }
+
+
+
+
 
 void draw_button(uint32_t clicked) {
 	static uint32_t last_state = 255; // undefined
+/*
 	if(clicked == last_state) return;
 	
 	ili9488_set_foreground_color(COLOR_CONVERT(COLOR_BLACK));
@@ -296,8 +359,9 @@ void draw_button(uint32_t clicked) {
 		ili9488_set_foreground_color(COLOR_CONVERT(COLOR_GREEN));
 		ili9488_draw_filled_rectangle(BUTTON_X-BUTTON_W/2+BUTTON_BORDER, BUTTON_Y-BUTTON_H/2+BUTTON_BORDER, BUTTON_X+BUTTON_W/2-BUTTON_BORDER, BUTTON_Y-BUTTON_BORDER);
 	}
-	last_state = clicked;
+	last_state = clicked;*/
 }
+
 
 uint32_t convert_axis_system_x(uint32_t touch_y) {
 	// entrada: 4096 - 0 (sistema de coordenadas atual)
