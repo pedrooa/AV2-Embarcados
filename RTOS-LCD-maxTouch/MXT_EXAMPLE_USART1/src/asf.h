@@ -52,6 +52,9 @@
  * running the ASF driver selector tool. Any changes will be discarded.
  */
 
+// From module: ACC - Analog Comparator Controller
+#include <acc.h>
+
 // From module: AFEC - Analog-Front-End Controller
 #include <afec.h>
 
@@ -107,6 +110,9 @@
 
 // From module: Part identification macros
 #include <parts.h>
+
+// From module: RTC - Real Time Clock
+#include <rtc.h>
 
 // From module: SAM FPU driver
 #include <fpu.h>
